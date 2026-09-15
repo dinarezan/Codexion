@@ -1,38 +1,32 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   coder.h                                            :+:      :+:    :+:   */
+/*   dongle.c                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/15 15:26:43 by drezan           ###   ########.fr       */
+/*   Created: 2026/09/15 12:20:43 by drezan            #+#    #+#             */
+/*   Updated: 2026/09/15 15:14:19 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CODER_H
+#include "dongle.h"
 
-# define CODER_H
-
-# include "dongle.h"
-# include <pthread.h>
-# include <stdio.h>
-# include <stdlib.h>
-# include <unistd.h>
-
-typedef struct s_coder
+t_dongle	**init_dongles(int n)
 {
-	int			id;
-	pthread_t	compile;
-	pthread_t	debug;
-	pthread_t	refactor;
-	t_dongle	*left;
-	t_dongle	*right;
-	int			compile_count;
-	long		last_compile;
-}				t_coder;
+	t_dongle	**dongles;
 
-t_coder			**init_coders(int n);
-void			coder_run(t_coder *coder);
-
-#endif
+	dongles = (t_dongle **)malloc(n * sizeof(t_dongle *));
+	if (!dongles)
+		return (NULL);
+	for (int i = 0; i < n; i++)
+	{
+		dongles[i] = malloc(sizeof(t_dongle));
+		if (!dongles[i])
+			return (NULL);
+		pthread_mutex_init(&dongles[i]->dongle, NULL);
+		dongles[i]->id = i;
+		dongles[i]->last_compile = 0;
+	}
+	return (dongles);
+}
