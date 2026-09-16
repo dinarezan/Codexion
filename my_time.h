@@ -1,34 +1,21 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   coder.h                                            :+:      :+:    :+:   */
+/*   my_time.h                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/16 12:43:55 by drezan           ###   ########.fr       */
+/*   Created: 2026/09/16 12:23:37 by drezan            #+#    #+#             */
+/*   Updated: 2026/09/16 14:55:34 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CODER_H
+#ifndef MY_TIME_H
 
-# define CODER_H
+# define MY_TIME_H
 
-# include "dongle.h"
+#include <sys/time.h>
 
-typedef struct s_coder
-{
-	int				id;
-	pthread_t		compile;
-	pthread_t		debug;
-	pthread_t		refactor;
-	t_dongle		*left;
-	t_dongle		*right;
-	int				compile_count;
-	struct timeval	last_compile;
-}					t_coder;
-
-t_coder				**init_coders(t_sim_param *sim_param);
-void				coder_run(t_sim_param *sim_param, t_coder *coder);
+long long time_difference(struct timeval start);
 
 #endif

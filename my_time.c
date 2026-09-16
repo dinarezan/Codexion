@@ -1,34 +1,28 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   coder.h                                            :+:      :+:    :+:   */
+/*   my_time.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/16 12:43:55 by drezan           ###   ########.fr       */
+/*   Created: 2026/09/16 12:18:17 by drezan            #+#    #+#             */
+/*   Updated: 2026/09/16 14:56:00 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#ifndef CODER_H
+#include <stdio.h>
+#include <sys/time.h>
 
-# define CODER_H
-
-# include "dongle.h"
-
-typedef struct s_coder
+long long	time_difference(struct timeval start)
 {
-	int				id;
-	pthread_t		compile;
-	pthread_t		debug;
-	pthread_t		refactor;
-	t_dongle		*left;
-	t_dongle		*right;
-	int				compile_count;
-	struct timeval	last_compile;
-}					t_coder;
+	struct timeval	end;
+	long long		start_ms;
+	long long		end_ms;
+	long long		diff_ms_int;
 
-t_coder				**init_coders(t_sim_param *sim_param);
-void				coder_run(t_sim_param *sim_param, t_coder *coder);
-
-#endif
+	gettimeofday(&end, NULL);
+	start_ms = ((long long)start.tv_sec * 1000) + (start.tv_usec / 1000);
+	end_ms = ((long long)end.tv_sec * 1000) + (end.tv_usec / 1000);
+	diff_ms_int = end_ms - start_ms;
+	return (diff_ms_int);
+}

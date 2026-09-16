@@ -6,20 +6,21 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:26:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/15 16:10:49 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/16 15:03:07 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "dongle.h"
-#include <sys/time.h>
 
-t_coder	**init_coders(int n)
+t_coder	**init_coders(t_sim_param *sim_param)
 {
 	t_coder		**coders;
 	t_dongle	**dongles;
+	int			n;
 
-	dongles = init_dongles(n);
+	n = sim_param->number_of_coders;
+	dongles = init_dongles(sim_param);
 	printf("dongles initiaized.\n");
 	coders = (t_coder **)malloc(n * sizeof(t_coder *));
 	for (int i = 0; i < n; i++)
@@ -27,7 +28,7 @@ t_coder	**init_coders(int n)
 		coders[i] = (t_coder *)malloc(sizeof(t_coder));
 		coders[i]->id = i + 1;
 		coders[i]->compile_count = 0;
-		coders[i]->last_compile = 0;
+		coders[i]->last_compile = sim_param->sim_start;
 		if (i == 0)
 			coders[i]->left = dongles[n - 1];
 		else
@@ -37,56 +38,74 @@ t_coder	**init_coders(int n)
 	return (coders);
 }
 
-static void	*compile(void *coder)
+static void	*compile(void *sim_coder)
 {
-	struct timeval	start;
-	struct timeval	end;
-	int				rc;
+	t_coder			*coder;
+	t_sim_param		*sim_param;
+	long long		time_diff;
 
-	rc = gettimeofday(&start, NULL);
-	if (rc < 0)
-		return (printf("failed...\n"), NULL);
+	coder = ((t_sim_coder *)sim_coder)->coder;
+	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
+
 	pthread_mutex_lock(&((t_coder *)coder)->left->dongle);
+	time_diff = time_difference(sim_param->sim_start);
+	printf("%lld Programmer %d has taken a left dongle\n", time_diff,
+		((t_coder *)coder)->id);
 	pthread_mutex_lock(&((t_coder *)coder)->right->dongle);
-	printf("%ld.%06ld Programmer %d is compiling\n", start.tv_sec,
-		start.tv_usec, ((t_coder *)coder)->id);
-	usleep(900000);
-	gettimeofday(&end, NULL);
-	printf("%ld.%06ld Programmer %d is done compiling.\n", end.tv_sec,
-		end.tv_usec, ((t_coder *)coder)->id);
+	time_diff = time_difference(sim_param->sim_start);
+	printf("%lld Programmer %d has taken a right dongle\n", time_diff,
+		((t_coder *)coder)->id);
+	time_diff = time_difference(sim_param->sim_start);
+	printf("%lld Programmer %d is compiling\n", time_diff,
+		((t_coder *)coder)->id);
+	usleep(sim_param->time_to_compile * 1000);
 	pthread_mutex_unlock(&((t_coder *)coder)->left->dongle);
 	pthread_mutex_unlock(&((t_coder *)coder)->right->dongle);
 	return (NULL);
 }
 
-static void	*debug(void *coder)
+static void	*debug(void *sim_coder)
 {
-	struct timeval	start;
+	t_coder			*coder;
+	t_sim_param		*sim_param;
+	long long		time_diff;
 
-	gettimeofday(&start, NULL);
-	printf("%ld.%06ld Programmer %d is debugging.\n", start.tv_sec,
-		start.tv_usec, ((t_coder *)coder)->id);
-	usleep(500000);
+	coder = ((t_sim_coder *)sim_coder)->coder;
+	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
+
+	time_diff = time_difference(sim_param->sim_start);
+	printf("%lld Programmer %d is debugging.\n", time_diff, ((t_coder *)coder)->id);
+	usleep(sim_param->time_to_debug * 1000);
 	return (NULL);
 }
 
-static void	*refactor(void *coder)
+static void	*refactor(void *sim_coder)
 {
-	struct timeval	start;
+	t_coder			*coder;
+	t_sim_param		*sim_param;
+	long long		time_diff;
 
-	gettimeofday(&start, NULL);
-	printf("%ld.%06ld Programmer %d is refactoring.\n", start.tv_sec,
-		start.tv_usec, ((t_coder *)coder)->id);
-	usleep(500000);
+	coder = ((t_sim_coder *)sim_coder)->coder;
+	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
+
+	time_diff = time_difference(sim_param->sim_start);
+	printf("%lld Programmer %d is refactoring.\n", time_diff, ((t_coder *)coder)->id);
+	usleep(sim_param->time_to_refactor * 1000);
 	return (NULL);
 }
 
-void	coder_run(t_coder *coder)
+void	coder_run(t_sim_param *sim_param, t_coder *coder)
 {
-	pthread_create(&coder->compile, NULL, compile, (void *)coder);
+	t_sim_coder	*sim_coder;
+	
+	sim_coder = malloc(sizeof(t_sim_coder));
+	sim_coder->sim_param = sim_param;
+	sim_coder->coder = coder;
+	pthread_create(&coder->compile, NULL, compile, (void *)sim_coder);
 	pthread_join(coder->compile, NULL);
-	pthread_create(&coder->debug, NULL, debug, (void *)coder);
+	pthread_create(&coder->debug, NULL, debug, (void *)sim_coder);
 	pthread_join(coder->debug, NULL);
-	pthread_create(&coder->refactor, NULL, refactor, (void *)coder);
+	pthread_create(&coder->refactor, NULL, refactor, (void *)sim_coder);
 	pthread_join(coder->refactor, NULL);
+	free(sim_coder);
 }
