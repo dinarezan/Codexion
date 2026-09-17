@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/16 12:43:55 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/17 15:50:25 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,6 @@
 typedef struct s_coder
 {
 	int				id;
-	pthread_t		compile;
-	pthread_t		debug;
-	pthread_t		refactor;
 	t_dongle		*left;
 	t_dongle		*right;
 	int				compile_count;
@@ -29,6 +26,6 @@ typedef struct s_coder
 }					t_coder;
 
 t_coder				**init_coders(t_sim_param *sim_param);
-void				coder_run(t_sim_param *sim_param, t_coder *coder);
+void				*coder_run(void *sim_coder);
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/16 15:06:32 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/17 15:54:05 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,6 +44,9 @@ int	main(int argc, char **argv)
 {
 	t_coder		**coders;
 	t_sim_param	*sim_param;
+	t_sim_coder	*sim_coders;
+	pthread_t	*threads;
+	int			n;
 
 	sim_param = parser(argc, argv);
 	if (!sim_param)
@@ -59,11 +62,24 @@ int	main(int argc, char **argv)
 		printf("Initializing of coders failed.\n");
 		return (0);
 	}
-	sim_param->coders = coders;
-	printf("Coders initialized.\n");
-	for (int i = 0; i < 10; i++)
+	n = sim_param->number_of_coders;
+	threads = malloc(sizeof(pthread_t) * n);
+	sim_coders = malloc(sizeof(t_sim_coder) * n);
+	for (int i = 0; i < n; i += 2)
 	{
-		coder_run(sim_param, coders[i]);
+		sim_coders[i].coder = coders[i];
+		sim_coders[i].sim_param = sim_param;
+		pthread_create(&threads[i], NULL, coder_run, &sim_coders[i]);
 	}
+		for (int i = 1; i < n; i += 2)
+	{
+		sim_coders[i].coder = coders[i];
+		sim_coders[i].sim_param = sim_param;
+		pthread_create(&threads[i], NULL, coder_run, &sim_coders[i]);
+	}
+	for (int i = 0; i < n; i++)
+		pthread_join(threads[i], NULL);
+	free(threads);
+	free(sim_coders);
 	return (0);
 }
