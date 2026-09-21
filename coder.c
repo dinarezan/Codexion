@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:26:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/18 15:30:46 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/21 16:42:37 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,71 +38,94 @@ t_coder	**init_coders(t_sim_param *sim_param)
 	return (coders);
 }
 
-void	acquire_single_dongle(t_dongle *d, t_sim_param *param)
+void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 {
-	int	my_ticket;
-	int	elapsed_cooldown;
-	int	remaining_us;
+	t_dongle	*d1;
+	t_dongle	*d2;
+	t_dongle	*first;
+	t_dongle	*second;
+	int			ticket1;
+	int			ticket2;
+	long long	cooldown1;
+	long long	cooldown2;
+	int			turn_ready;
+	long long	rem1;
+	long long	rem2;
+	long long	max_rem;
 
-	pthread_mutex_lock(&d->dongle);
-	my_ticket = d->ticket_counter++;
+	d1 = c->left;
+	d2 = c->right;
+	first = (d1->id < d2->id) ? d1 : d2;
+	second = (d1->id < d2->id) ? d2 : d1;
+	ticket1 = d1->ticket_counter++;
+	ticket2 = d2->ticket_counter++;
+	pthread_mutex_lock(&first->dongle);
+	pthread_mutex_lock(&second->dongle);
 	while (1)
 	{
-		elapsed_cooldown = time_difference(d->last_compile);
-		if (my_ticket == d->current_turn
-			&& elapsed_cooldown >= param->dongle_cooldown)
-			break ;
-		if (my_ticket == d->current_turn
-			&& elapsed_cooldown < param->dongle_cooldown)
+		turn_ready = (ticket1 == d1->current_turn)
+			&& (ticket2 == d2->current_turn);
+		if (turn_ready)
 		{
-			remaining_us = (param->dongle_cooldown - elapsed_cooldown) * 1000;
-			pthread_mutex_unlock(&d->dongle);
-			usleep(remaining_us);
-			pthread_mutex_lock(&d->dongle);
-			continue ;
+			cooldown1 = time_difference(d1->last_compile);
+			cooldown2 = time_difference(d2->last_compile);
+			rem1 = param->dongle_cooldown - cooldown1;
+			rem2 = param->dongle_cooldown - cooldown2;
+			max_rem = (rem1 > rem2) ? rem1 : rem2;
+			if (max_rem > 0)
+			{
+				pthread_mutex_unlock(&first->dongle);
+				pthread_mutex_unlock(&second->dongle);
+				usleep(max_rem * 1000);
+				continue ;
+			}
+			pthread_mutex_lock(&first->dongle);
+			pthread_mutex_lock(&second->dongle);
+			break ;
 		}
-		pthread_cond_wait(&d->condition, &d->dongle);
+		pthread_mutex_unlock(&second->dongle);
+		pthread_cond_wait(&first->condition, &first->dongle);
+		pthread_mutex_lock(&second->dongle);
 	}
+	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
+		((t_coder *)c)->id);
+	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
+		((t_coder *)c)->id);
 }
 
-void	release_single_dongle(t_dongle *d)
+void	release_both_dongles(t_coder *c)
 {
-	d->current_turn++;
-	gettimeofday(&d->last_compile, NULL);
-	pthread_cond_broadcast(&d->condition);
-	pthread_mutex_unlock(&d->dongle);
+	t_dongle	*d1;
+	t_dongle	*d2;
+	t_dongle	*first;
+	t_dongle	*second;
+
+	d1 = c->left;
+	d2 = c->right;
+	first = (d1->id < d2->id) ? d1 : d2;
+	second = (d1->id < d2->id) ? d2 : d1;
+	gettimeofday(&first->last_compile, NULL);
+	gettimeofday(&second->last_compile, NULL);
+	first->current_turn++;
+	second->current_turn++;
+	pthread_cond_broadcast(&first->condition);
+	pthread_cond_broadcast(&second->condition);
+	pthread_mutex_unlock(&first->dongle);
+	pthread_mutex_unlock(&second->dongle);
 }
 
 void	*coder_run(void *sim_coder)
 {
 	t_coder		*coder;
 	t_sim_param	*sim_param;
-	t_dongle	*first;
-	t_dongle	*second;
 
 	coder = ((t_sim_coder *)sim_coder)->coder;
 	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
-	if (coder->left->id < coder->right->id)
-	{
-		first = coder->left;
-		second = coder->right;
-	}
-	else
-	{
-		first = coder->right;
-		second = coder->left;
-	}
-	acquire_single_dongle(first, sim_param);
-	printf("%lld %d has taken a dongle\n",
-		time_difference(sim_param->sim_start), ((t_coder *)coder)->id);
-	acquire_single_dongle(second, sim_param);
-	printf("%lld %d has taken a dongle\n",
-		time_difference(sim_param->sim_start), ((t_coder *)coder)->id);
-	printf("%lld %d is compiling\n", time_difference(sim_param->sim_start),
+	acquire_both_dongles(coder, sim_param);
+	printf("%lld %d is compiling.\n", time_difference(sim_param->sim_start),
 		((t_coder *)coder)->id);
 	usleep(sim_param->time_to_compile * 1000);
-	release_single_dongle(second);
-	release_single_dongle(first);
+	release_both_dongles(coder);
 	printf("%lld %d is debugging.\n", time_difference(sim_param->sim_start),
 		((t_coder *)coder)->id);
 	usleep(sim_param->time_to_debug * 1000);
