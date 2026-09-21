@@ -6,13 +6,13 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/21 14:02:39 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/21 17:40:04 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "simulation.h"
-#include <string.h>
+#include "parsing_validation.h"
 
 t_sim_param	*parser(int argc, char **argv)
 {
@@ -20,7 +20,7 @@ t_sim_param	*parser(int argc, char **argv)
 
 	if (argc != 9)
 		return (NULL);
-	if (atoi(argv[1]) < 1)
+	if (arg_check(argv) < 0)
 		return (NULL);
 	sim_param = malloc(sizeof(t_sim_param));
 	sim_param->number_of_coders = atoi(argv[1]);
@@ -71,7 +71,7 @@ int	main(int argc, char **argv)
 		sim_coders[i].sim_param = sim_param;
 		pthread_create(&threads[i], NULL, coder_run, &sim_coders[i]);
 	}
-	usleep(2000);
+	usleep(sim_param->time_to_compile / 2 * 1000);
 	for (int i = 1; i < n; i += 2)
 	{
 		sim_coders[i].coder = coders[i];
@@ -80,7 +80,6 @@ int	main(int argc, char **argv)
 	}
 	for (int i = 0; i < n; i += 1)
 		pthread_join(threads[i], NULL);
-
 	free(threads);
 	free(sim_coders);
 	return (0);
