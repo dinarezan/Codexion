@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:26:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/21 16:42:37 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/22 19:25:56 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,14 +57,14 @@ void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 	d2 = c->right;
 	first = (d1->id < d2->id) ? d1 : d2;
 	second = (d1->id < d2->id) ? d2 : d1;
-	ticket1 = d1->ticket_counter++;
-	ticket2 = d2->ticket_counter++;
 	pthread_mutex_lock(&first->dongle);
 	pthread_mutex_lock(&second->dongle);
+	ticket1 = first->ticket_counter++;
+	ticket2 = second->ticket_counter++;
 	while (1)
 	{
-		turn_ready = (ticket1 == d1->current_turn)
-			&& (ticket2 == d2->current_turn);
+		turn_ready = (ticket1 == first->current_turn)
+			|| (ticket2 == second->current_turn);
 		if (turn_ready)
 		{
 			cooldown1 = time_difference(d1->last_compile);
@@ -74,23 +74,23 @@ void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 			max_rem = (rem1 > rem2) ? rem1 : rem2;
 			if (max_rem > 0)
 			{
-				pthread_mutex_unlock(&first->dongle);
 				pthread_mutex_unlock(&second->dongle);
+				pthread_mutex_unlock(&first->dongle);
 				usleep(max_rem * 1000);
+				pthread_mutex_lock(&first->dongle);
+				pthread_mutex_lock(&second->dongle);
 				continue ;
 			}
-			pthread_mutex_lock(&first->dongle);
-			pthread_mutex_lock(&second->dongle);
 			break ;
 		}
 		pthread_mutex_unlock(&second->dongle);
 		pthread_cond_wait(&first->condition, &first->dongle);
 		pthread_mutex_lock(&second->dongle);
 	}
-	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
-		((t_coder *)c)->id);
-	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
-		((t_coder *)c)->id);
+	// printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
+	// 	((t_coder *)c)->id);
+	// printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
+	// 	((t_coder *)c)->id);
 }
 
 void	release_both_dongles(t_coder *c)
@@ -109,8 +109,8 @@ void	release_both_dongles(t_coder *c)
 	first->current_turn++;
 	second->current_turn++;
 	pthread_cond_broadcast(&first->condition);
-	pthread_cond_broadcast(&second->condition);
 	pthread_mutex_unlock(&first->dongle);
+	pthread_cond_broadcast(&second->condition);
 	pthread_mutex_unlock(&second->dongle);
 }
 
@@ -121,16 +121,21 @@ void	*coder_run(void *sim_coder)
 
 	coder = ((t_sim_coder *)sim_coder)->coder;
 	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
-	acquire_both_dongles(coder, sim_param);
-	printf("%lld %d is compiling.\n", time_difference(sim_param->sim_start),
-		((t_coder *)coder)->id);
-	usleep(sim_param->time_to_compile * 1000);
-	release_both_dongles(coder);
-	printf("%lld %d is debugging.\n", time_difference(sim_param->sim_start),
-		((t_coder *)coder)->id);
-	usleep(sim_param->time_to_debug * 1000);
-	printf("%lld %d is refactoring.\n", time_difference(sim_param->sim_start),
-		((t_coder *)coder)->id);
-	usleep(sim_param->time_to_refactor * 1000);
+	while (coder->compile_count < sim_param->number_of_compiles_required)
+	{
+		acquire_both_dongles(coder, sim_param);
+		gettimeofday(&coder->last_compile, NULL);
+		printf("%lld %d is compiling.\n", time_difference(sim_param->sim_start),
+			((t_coder *)coder)->id);
+		usleep(sim_param->time_to_compile * 1000);
+		release_both_dongles(coder);
+		// printf("%lld %d is debugging.\n", time_difference(sim_param->sim_start),
+		// 	((t_coder *)coder)->id);
+		usleep(sim_param->time_to_debug * 1000);
+		// printf("%lld %d is refactoring.\n", time_difference(sim_param->sim_start),
+		// 	((t_coder *)coder)->id);
+		usleep(sim_param->time_to_refactor * 1000);
+		coder->compile_count++;
+	}
 	return (NULL);
 }
