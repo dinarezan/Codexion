@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/21 17:40:04 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/24 12:50:59 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,7 +36,6 @@ t_sim_param	*parser(int argc, char **argv)
 		sim_param->scheduler = 1;
 	else
 		return (free(sim_param), NULL);
-	gettimeofday(&sim_param->sim_start, NULL);
 	return (sim_param);
 }
 
@@ -57,6 +56,7 @@ int	main(int argc, char **argv)
 	}
 	printf("Starting program...\n");
 	coders = init_coders(sim_param);
+	gettimeofday(&sim_param->sim_start, NULL);
 	if (!coders)
 	{
 		printf("Initializing of coders failed.\n");
