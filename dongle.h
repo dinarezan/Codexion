@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:14:57 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/18 15:00:58 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/24 14:51:30 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,5 +28,6 @@ typedef struct s_dongle
 }					t_dongle;
 
 t_dongle			**init_dongles(t_sim_param *sim_param);
+void				free_dongles(t_dongle **dongles);
 
 #endif

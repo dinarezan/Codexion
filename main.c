@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 12:50:59 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/24 15:03:17 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,7 @@ t_sim_param	*parser(int argc, char **argv)
 int	main(int argc, char **argv)
 {
 	t_coder		**coders;
+	t_dongle	**dongles;
 	t_sim_param	*sim_param;
 	t_sim_coder	*sim_coders;
 	pthread_t	*threads;
@@ -51,17 +52,16 @@ int	main(int argc, char **argv)
 	if (!sim_param)
 	{
 		printf("Unable to parse command line arguments. ");
-		printf("Exiting the program...\n");
 		return (0);
 	}
-	printf("Starting program...\n");
-	coders = init_coders(sim_param);
-	gettimeofday(&sim_param->sim_start, NULL);
+	dongles = init_dongles(sim_param);
+	if (!dongles)
+		return (free(sim_param), 0);
+	coders = init_coders(sim_param, dongles);
 	if (!coders)
-	{
-		printf("Initializing of coders failed.\n");
-		return (0);
-	}
+		return (free(sim_param), 0);
+	printf("Starting program...\n");
+	gettimeofday(&sim_param->sim_start, NULL);
 	n = sim_param->number_of_coders;
 	threads = malloc(sizeof(pthread_t) * n);
 	sim_coders = malloc(sizeof(t_sim_coder) * n);
@@ -80,6 +80,9 @@ int	main(int argc, char **argv)
 	}
 	for (int i = 0; i < n; i += 1)
 		pthread_join(threads[i], NULL);
+	free_dongles(dongles);
+	free_coders(coders);
+	free(sim_param);
 	free(threads);
 	free(sim_coders);
 	return (0);
