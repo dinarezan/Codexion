@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 14:55:01 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 13:52:15 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ typedef struct s_coder
 	t_dongle		*right;
 	int				compile_count;
 	struct timeval	last_compile;
+	int				time_to_burnout;
 }					t_coder;
 
 t_coder				**init_coders(t_sim_param *sim_param, t_dongle **dongles);
@@ -30,5 +31,8 @@ void				acquire_both_dongles(t_coder *c, t_sim_param *param);
 void				release_both_dongles(t_coder *c);
 void				*coder_run(void *sim_coder);
 void				free_coders(t_coder **coders);
+int					sim_stop(t_sim_param *sim_param);
+void				set_last_compilation_time(t_coder **coders,
+						t_sim_param *sim_param);
 
 #endif

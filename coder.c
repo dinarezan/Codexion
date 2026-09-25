@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:26:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 15:00:04 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 13:54:13 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,6 +57,15 @@ t_coder	**init_coders(t_sim_param *sim_param, t_dongle **dongles)
 	return (coders);
 }
 
+void set_last_compilation_time(t_coder **coders, t_sim_param *sim_param)
+{
+	int i;
+	
+	i = 0;
+	while (coders[i])
+		coders[i++]->last_compile = sim_param->sim_start;
+}
+
 void	*coder_run(void *sim_coder)
 {
 	t_coder		*coder;
@@ -64,17 +73,26 @@ void	*coder_run(void *sim_coder)
 
 	coder = ((t_sim_coder *)sim_coder)->coder;
 	sim_param = ((t_sim_coder *)sim_coder)->sim_param;
+
 	while (coder->compile_count < sim_param->number_of_compiles_required)
 	{
+		if (sim_stop(sim_param))
+			break;
 		acquire_both_dongles(coder, sim_param);
 		gettimeofday(&coder->last_compile, NULL);
+		if (sim_stop(sim_param))
+			break;
 		printf("%lld %d is compiling.\n", time_difference(sim_param->sim_start),
 			((t_coder *)coder)->id);
 		usleep(sim_param->time_to_compile * 1000);
 		release_both_dongles(coder);
+		if (sim_stop(sim_param))
+			break;
 		printf("%lld %d is debugging.\n", time_difference(sim_param->sim_start),
 			((t_coder *)coder)->id);
 		usleep(sim_param->time_to_debug * 1000);
+		if (sim_stop(sim_param))
+			break;
 		printf("%lld %d is refactoring.\n",
 			time_difference(sim_param->sim_start), ((t_coder *)coder)->id);
 		usleep(sim_param->time_to_refactor * 1000);

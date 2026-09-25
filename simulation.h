@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 15:59:36 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/21 17:41:27 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 12:06:42 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,8 @@ typedef struct s_sim_param
 	int					dongle_cooldown;
 	int					scheduler;
 	struct timeval		sim_start;
+	int					sim_stop;
+	pthread_mutex_t		stop_lock;
 }						t_sim_param;
 
 typedef struct s_sim_coder
@@ -41,5 +43,11 @@ typedef struct s_sim_coder
 	t_sim_param			*sim_param;
 	t_coder				*coder;
 }						t_sim_coder;
+
+typedef struct s_sim_coders
+{
+	t_sim_param			*sim_param;
+	t_coder				**coders;
+}						t_sim_coders;
 
 #endif

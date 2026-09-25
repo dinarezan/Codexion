@@ -6,13 +6,14 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 15:03:17 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 13:49:13 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "simulation.h"
 #include "parsing_validation.h"
+#include "monitor.h"
 
 t_sim_param	*parser(int argc, char **argv)
 {
@@ -36,7 +37,17 @@ t_sim_param	*parser(int argc, char **argv)
 		sim_param->scheduler = 1;
 	else
 		return (free(sim_param), NULL);
+	sim_param->sim_stop = 0;
+	pthread_mutex_init(&sim_param->stop_lock, NULL);
 	return (sim_param);
+}
+
+void free_all(t_coder **coders, t_dongle **dongles, t_sim_param *sim_param, t_sim_coder *sim_coders)
+{
+	free_dongles(dongles);
+	free_coders(coders);
+	free(sim_param);
+	free(sim_coders);
 }
 
 int	main(int argc, char **argv)
@@ -46,6 +57,7 @@ int	main(int argc, char **argv)
 	t_sim_param	*sim_param;
 	t_sim_coder	*sim_coders;
 	pthread_t	*threads;
+	pthread_t	*monitor;
 	int			n;
 
 	sim_param = parser(argc, argv);
@@ -60,11 +72,13 @@ int	main(int argc, char **argv)
 	coders = init_coders(sim_param, dongles);
 	if (!coders)
 		return (free(sim_param), 0);
-	printf("Starting program...\n");
-	gettimeofday(&sim_param->sim_start, NULL);
 	n = sim_param->number_of_coders;
 	threads = malloc(sizeof(pthread_t) * n);
 	sim_coders = malloc(sizeof(t_sim_coder) * n);
+	monitor = init_monitor(coders, sim_param);
+	printf("Starting program...\n");
+	gettimeofday(&sim_param->sim_start, NULL);
+	set_last_compilation_time(coders, sim_param);
 	for (int i = 0; i < n; i += 2)
 	{
 		sim_coders[i].coder = coders[i];
@@ -78,12 +92,12 @@ int	main(int argc, char **argv)
 		sim_coders[i].sim_param = sim_param;
 		pthread_create(&threads[i], NULL, coder_run, &sim_coders[i]);
 	}
+	pthread_join(*monitor, NULL);
 	for (int i = 0; i < n; i += 1)
 		pthread_join(threads[i], NULL);
-	free_dongles(dongles);
-	free_coders(coders);
-	free(sim_param);
+	pthread_mutex_destroy(&sim_param->stop_lock);
+	free_all(coders, dongles, sim_param, sim_coders);
+	free(monitor);
 	free(threads);
-	free(sim_coders);
 	return (0);
 }

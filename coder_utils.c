@@ -6,12 +6,24 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 14:30:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 14:33:37 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 13:54:28 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "dongle.h"
+
+int sim_stop(t_sim_param *sim_param)
+{
+	pthread_mutex_lock(&sim_param->stop_lock);
+	if (sim_param->sim_stop == 1)
+	{
+		pthread_mutex_unlock(&sim_param->stop_lock);
+		return (1);
+	}
+	pthread_mutex_unlock(&sim_param->stop_lock);
+	return (0);
+}
 
 static void	acquire_single_dongle(t_dongle *d, t_sim_param *param)
 {
@@ -56,9 +68,13 @@ void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 	first = (c->left->id < c->right->id) ? c->left : c->right;
 	second = (c->left->id < c->right->id) ? c->right : c->left;
 	acquire_single_dongle(first, param);
+	if (sim_stop(param))
+		return;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
 		((t_coder *)c)->id);
 	acquire_single_dongle(second, param);
+	if (sim_stop(param))
+		return;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
 		((t_coder *)c)->id);
 }
