@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/15 12:20:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/24 15:00:36 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/25 15:09:02 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,11 @@
 
 void	free_dongles(t_dongle **dongles)
 {
-	int i;
+	int	i;
+
 	i = 0;
 	if (!dongles)
-		return;
+		return ;
 	while (dongles[i])
 	{
 		pthread_mutex_destroy(&dongles[i]->dongle);

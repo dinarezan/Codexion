@@ -6,7 +6,7 @@
 #    By: drezan <drezan@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/09/15 14:47:02 by drezan            #+#    #+#              #
-#    Updated: 2026/09/24 17:02:02 by drezan           ###   ########.fr        #
+#    Updated: 2026/09/25 17:51:44 by drezan           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -16,7 +16,7 @@ CFLAGS = -pthread -Wall -Werror -Wextra
 
 NAME = codexion
 
-SRCS = coder.c coder_utils.c dongle.c monitor.c my_time.c parsing_validation.c main.c
+SRCS = coder.c coder_utils_1.c coder_utils_2.c dongle.c monitor.c my_time.c parsing_validation.c main.c
 
 OBJS = $(SRCS:.c=.o)
 
