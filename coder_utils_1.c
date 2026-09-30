@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 14:30:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 17:41:07 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/30 16:10:32 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,16 +25,15 @@ int	sim_stop(t_sim_param *sim_param)
 	return (0);
 }
 
-static void	acquire_single_dongle(t_dongle *d, t_sim_param *param)
+static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 {
-	int				ticket;
 	long long		cooldown_over;
 	struct timeval	now;
 	struct timespec	ts;
 
+	insert_heap(d->queue, c);
 	pthread_mutex_lock(&d->dongle);
-	ticket = d->ticket_counter++;
-	while (ticket != d->current_turn)
+	while (d->queue->coders[0]->id != c->id)
 	{
 		pthread_cond_wait(&d->condition, &d->dongle);
 	}
@@ -55,7 +54,7 @@ static void	release_single_dongle(t_dongle *d)
 {
 	pthread_mutex_lock(&d->dongle);
 	gettimeofday(&d->last_compile, NULL);
-	d->current_turn++;
+	pop_min_from_heap(d->queue);
 	pthread_cond_broadcast(&d->condition);
 	pthread_mutex_unlock(&d->dongle);
 }
@@ -72,15 +71,15 @@ void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 	}
 	else
 	{
-		first = c->left;
-		second = c->right;
+		first = c->right;
+		second = c->left;
 	}
-	acquire_single_dongle(first, param);
+	acquire_single_dongle(first, param, c);
 	if (sim_stop(param))
 		return ;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
 		((t_coder *)c)->id);
-	acquire_single_dongle(second, param);
+	acquire_single_dongle(second, param, c);
 	if (sim_stop(param))
 		return ;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),

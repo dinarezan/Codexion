@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/15 12:20:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 15:09:02 by drezan           ###   ########.fr       */
+/*   Updated: 2026/09/30 15:54:43 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,8 @@ void	free_dongles(t_dongle **dongles)
 	{
 		pthread_mutex_destroy(&dongles[i]->dongle);
 		pthread_cond_destroy(&dongles[i]->condition);
+		free(dongles[i]->queue->coders);
+		free(dongles[i]->queue);
 		free(dongles[i]);
 		i++;
 	}
@@ -49,10 +51,9 @@ t_dongle	**init_dongles(t_sim_param *sim_param)
 		pthread_mutex_init(&dongles[i]->dongle, NULL);
 		pthread_cond_init(&dongles[i]->condition, NULL);
 		dongles[i]->id = i;
-		dongles[i]->ticket_counter = 0;
-		dongles[i]->current_turn = 0;
 		dongles[i]->last_compile.tv_sec = 0;
 		dongles[i]->last_compile.tv_usec = 0;
+		dongles[i]->queue = create_heap(2, sim_param->scheduler);
 		i++;
 	}
 	dongles[i] = NULL;
