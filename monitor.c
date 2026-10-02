@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 16:12:11 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 18:31:47 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/02 12:25:33 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,20 @@ static int	monitor_helper(t_coder *coder, t_sim_param *sim_param)
 		return (0);
 }
 
+static void	broadcast_all(t_coder **coders)
+{
+	int	i;
+
+	i = 0;
+	while (coders[i])
+	{
+		pthread_mutex_lock(&coders[i]->left->dongle);
+		pthread_cond_broadcast(&coders[i]->left->condition);
+		pthread_mutex_unlock(&coders[i]->left->dongle);
+		i++;
+	}
+}
+
 void	*monitor(void *args)
 {
 	int			i;
@@ -46,9 +60,8 @@ void	*monitor(void *args)
 		while (coders[i])
 		{
 			if (monitor_helper(coders[i], sim_param))
-				return (NULL);
-			if (coders[i]->compile_count
-				>= sim_param->number_of_compiles_required)
+				return (broadcast_all(coders), NULL);
+			if (coders[i]->compile_count >= sim_param->number_of_compiles_required)
 				done++;
 			i++;
 		}

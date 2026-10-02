@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 17:41:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 17:41:47 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/02 13:30:32 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,11 @@ void	set_last_compilation_time(t_coder **coders, t_sim_param *sim_param)
 
 	i = 0;
 	while (coders[i])
-		coders[i++]->last_compile = sim_param->sim_start;
+	{
+		coders[i]->last_compile = sim_param->sim_start;
+		coders[i]->time_to_burnout = sim_param->time_to_burnout;
+		i++;
+	}
 }
 
 void	free_coders(t_coder **coders)

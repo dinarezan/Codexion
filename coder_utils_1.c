@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 14:30:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/30 16:10:32 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/02 15:14:52 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,11 +31,16 @@ static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 	struct timeval	now;
 	struct timespec	ts;
 
-	insert_heap(d->queue, c);
 	pthread_mutex_lock(&d->dongle);
-	while (d->queue->coders[0]->id != c->id)
+	insert_heap(d->queue, c);
+	while ((d->queue->coders[0]->id != c->id || d->in_use) && !sim_stop(param))
 	{
 		pthread_cond_wait(&d->condition, &d->dongle);
+	}
+	if (sim_stop(param))
+	{
+		pthread_mutex_unlock(&d->dongle);
+		return ;
 	}
 	cooldown_over = d->last_compile.tv_sec * 1000 + d->last_compile.tv_usec
 		/ 1000 + param->dongle_cooldown;
@@ -47,6 +52,8 @@ static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 		pthread_cond_timedwait(&d->condition, &d->dongle, &ts);
 		gettimeofday(&now, NULL);
 	}
+	pop_min_from_heap(d->queue);
+	d->in_use = 1;
 	pthread_mutex_unlock(&d->dongle);
 }
 
@@ -54,7 +61,7 @@ static void	release_single_dongle(t_dongle *d)
 {
 	pthread_mutex_lock(&d->dongle);
 	gettimeofday(&d->last_compile, NULL);
-	pop_min_from_heap(d->queue);
+	d->in_use = 0;
 	pthread_cond_broadcast(&d->condition);
 	pthread_mutex_unlock(&d->dongle);
 }
@@ -78,12 +85,12 @@ void	acquire_both_dongles(t_coder *c, t_sim_param *param)
 	if (sim_stop(param))
 		return ;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
-		((t_coder *)c)->id);
+		c->id);
 	acquire_single_dongle(second, param, c);
 	if (sim_stop(param))
 		return ;
 	printf("%lld %d has taken a dongle\n", time_difference(param->sim_start),
-		((t_coder *)c)->id);
+		c->id);
 }
 
 void	release_both_dongles(t_coder *c)

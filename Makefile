@@ -6,7 +6,7 @@
 #    By: drezan <drezan@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2026/09/15 14:47:02 by drezan            #+#    #+#              #
-#    Updated: 2026/09/30 15:46:28 by drezan           ###   ########.fr        #
+#    Updated: 2026/10/02 15:32:23 by drezan           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -35,3 +35,11 @@ fclean:	clean
 	rm -f $(NAME)
 
 re:	fclean all
+
+debug-asan: CFLAGS += -fsanitize=address -g -O0 -fno-omit-frame-pointer
+debug-asan: re
+
+debug-tsan: CFLAGS += -fsanitize=thread -g -O0
+debug-tsan: re
+
+.PHONY: all clean fclean re debug-asan debug-tsan

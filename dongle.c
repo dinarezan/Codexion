@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/15 12:20:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/30 15:54:43 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/02 11:48:27 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,7 @@ t_dongle	**init_dongles(t_sim_param *sim_param)
 		dongles[i]->id = i;
 		dongles[i]->last_compile.tv_sec = 0;
 		dongles[i]->last_compile.tv_usec = 0;
+		dongles[i]->in_use = 0;
 		dongles[i]->queue = create_heap(2, sim_param->scheduler);
 		i++;
 	}

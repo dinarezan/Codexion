@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/30 14:22:07 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/30 16:08:57 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/02 12:05:51 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,13 +25,13 @@ t_heap	*create_heap(int capacity, int key)
 	return (heap);
 }
 
-void	swap(t_coder *a, t_coder *b)
+void	swap(t_heap *heap, int i, int j)
 {
 	t_coder	*temp;
 
-	temp = a;
-	a = b;
-	b = temp;
+	temp = heap->coders[i];
+	heap->coders[i] = heap->coders[j];
+	heap->coders[j] = temp;
 }
 
 void	heapify(t_heap *heap, int i)
@@ -54,7 +54,7 @@ void	heapify(t_heap *heap, int i)
 	if (left < heap->size && deadline_left < deadline_min)
 		min = left;
 	if (min != i)
-		swap(heap->coders[i], heap->coders[min]);
+		swap(heap, i, min);
 }
 
 void	insert_heap(t_heap *heap, t_coder *c)
