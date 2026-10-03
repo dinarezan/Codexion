@@ -6,37 +6,46 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 14:30:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/10/03 17:23:24 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 20:20:41 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "dongle.h"
 
-static void	wait_for_cooldown(t_dongle *d, t_sim_param *param)
+static int	wait_for_cooldown(t_dongle *d, t_sim_param *param)
 {
-	long long		cooldown_over;
-	struct timeval	now;
+	long long		deadline;
+	long long		now;
 	struct timespec	ts;
+	struct timeval	tv;
 
-	cooldown_over = d->last_compile.tv_sec * 1000 + d->last_compile.tv_usec
-		/ 1000 + param->dongle_cooldown;
-	ts.tv_sec = cooldown_over / 1000;
-	ts.tv_nsec = (cooldown_over % 1000) * 1000000;
-	gettimeofday(&now, NULL);
-	while (((long long)now.tv_sec * 1000 + now.tv_usec / 1000) < cooldown_over)
-	{
-		pthread_cond_timedwait(&d->condition, &d->dongle, &ts);
-		gettimeofday(&now, NULL);
-	}
+	deadline = d->last_compile.tv_sec * 1000
+		+ d->last_compile.tv_usec / 1000 + param->dongle_cooldown;
+	gettimeofday(&tv, NULL);
+	now = (long long)tv.tv_sec * 1000 + tv.tv_usec / 1000;
+	if (now >= deadline)
+		return (0);
+	ts.tv_sec = deadline / 1000;
+	ts.tv_nsec = (deadline % 1000) * 1000000;
+	pthread_cond_timedwait(&d->condition, &d->dongle, &ts);
+	return (1);
 }
 
 static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 {
 	pthread_mutex_lock(&d->dongle);
 	insert_heap(d->queue, c);
-	while ((d->queue->coders[0]->id != c->id || d->in_use) && !sim_stop(param))
-		pthread_cond_wait(&d->condition, &d->dongle);
+	while (!sim_stop(param))
+	{
+		if (d->queue->coders[0]->id == c->id && !d->in_use)
+		{
+			if (!wait_for_cooldown(d, param))
+				break ;
+		}
+		else
+			pthread_cond_wait(&d->condition, &d->dongle);
+	}
 	if (sim_stop(param))
 	{
 		pthread_mutex_unlock(&d->dongle);
@@ -44,7 +53,6 @@ static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 	}
 	pop_min_from_heap(d->queue);
 	d->in_use = 1;
-	wait_for_cooldown(d, param);
 	pthread_mutex_unlock(&d->dongle);
 }
 
