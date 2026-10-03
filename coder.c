@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:26:43 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 17:42:19 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 17:18:40 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,10 +36,10 @@ t_coder	**init_coders(t_sim_param *sim_param, t_dongle **dongles)
 		else
 			coders[i]->left = dongles[i - 1];
 		coders[i]->right = dongles[i];
+		pthread_mutex_init(&coders[i]->state_lock, NULL);
 		i++;
 	}
-	coders[i] = NULL;
-	return (coders);
+	return (coders[i] = NULL, coders);
 }
 
 static void	compile(t_coder *coder, t_sim_param *sim_param)
@@ -74,7 +74,9 @@ void	*coder_run(void *sim_coder)
 	while (coder->compile_count < sim_param->number_of_compiles_required)
 	{
 		acquire_both_dongles(coder, sim_param);
+		pthread_mutex_lock(&coder->state_lock);
 		gettimeofday(&coder->last_compile, NULL);
+		pthread_mutex_unlock(&coder->state_lock);
 		if (sim_stop(sim_param))
 			break ;
 		compile(coder, sim_param);
@@ -84,7 +86,9 @@ void	*coder_run(void *sim_coder)
 		if (sim_stop(sim_param))
 			break ;
 		refactor(coder, sim_param);
+		pthread_mutex_lock(&coder->state_lock);
 		coder->compile_count++;
+		pthread_mutex_unlock(&coder->state_lock);
 	}
 	return (NULL);
 }

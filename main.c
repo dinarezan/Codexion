@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 16:37:15 by drezan            #+#    #+#             */
-/*   Updated: 2026/09/25 18:34:17 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 17:07:17 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,7 +111,7 @@ int	main(int argc, char **argv)
 	sim_param = parser(argc, argv);
 	if (!sim_param)
 	{
-		printf("Unable to parse command line arguments. ");
+		printf("Unable to parse command line arguments.\n");
 		return (0);
 	}
 	dongles = init_dongles(sim_param);

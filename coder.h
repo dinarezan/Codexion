@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/14 12:06:48 by drezan            #+#    #+#             */
-/*   Updated: 2026/10/02 13:28:23 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 16:45:00 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@ typedef struct s_coder
 	int				compile_count;
 	struct timeval	last_compile;
 	int				time_to_burnout;
+	pthread_mutex_t	state_lock;
 }					t_coder;
 
 t_coder				**init_coders(t_sim_param *sim_param, t_dongle **dongles);

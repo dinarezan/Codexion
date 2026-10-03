@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 16:12:11 by drezan            #+#    #+#             */
-/*   Updated: 2026/10/02 12:25:33 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 17:15:59 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,8 +14,15 @@
 
 static int	monitor_helper(t_coder *coder, t_sim_param *sim_param)
 {
-	if (coder->compile_count < sim_param->number_of_compiles_required
-		&& time_difference(coder->last_compile) >= sim_param->time_to_burnout)
+	int				compile_count;
+	struct timeval	last_compile;
+
+	pthread_mutex_lock(&coder->state_lock);
+	compile_count = coder->compile_count;
+	last_compile = coder->last_compile;
+	pthread_mutex_unlock(&coder->state_lock);
+	if (compile_count < sim_param->number_of_compiles_required
+		&& time_difference(last_compile) >= sim_param->time_to_burnout)
 	{
 		printf("%lld %d burned out\n", time_difference(sim_param->sim_start),
 			coder->id);
@@ -61,9 +68,11 @@ void	*monitor(void *args)
 		{
 			if (monitor_helper(coders[i], sim_param))
 				return (broadcast_all(coders), NULL);
-			if (coders[i]->compile_count >= sim_param->number_of_compiles_required)
+			pthread_mutex_lock(&coders[i]->state_lock);
+			if (coders[i]->compile_count
+				>= sim_param->number_of_compiles_required)
 				done++;
-			i++;
+			pthread_mutex_unlock(&coders[i++]->state_lock);
 		}
 	}
 	return (NULL);

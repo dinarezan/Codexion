@@ -6,7 +6,7 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/25 17:41:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/10/02 13:30:32 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 17:22:56 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,18 @@ void	set_last_compilation_time(t_coder **coders, t_sim_param *sim_param)
 	}
 }
 
+int	sim_stop(t_sim_param *sim_param)
+{
+	pthread_mutex_lock(&sim_param->stop_lock);
+	if (sim_param->sim_stop == 1)
+	{
+		pthread_mutex_unlock(&sim_param->stop_lock);
+		return (1);
+	}
+	pthread_mutex_unlock(&sim_param->stop_lock);
+	return (0);
+}
+
 void	free_coders(t_coder **coders)
 {
 	int	i;
@@ -34,6 +46,7 @@ void	free_coders(t_coder **coders)
 		return ;
 	while (coders[i])
 	{
+		pthread_mutex_destroy(&coders[i]->state_lock);
 		free(coders[i]);
 		i++;
 	}

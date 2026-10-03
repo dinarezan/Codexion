@@ -6,42 +6,19 @@
 /*   By: drezan <drezan@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/09/24 14:30:12 by drezan            #+#    #+#             */
-/*   Updated: 2026/10/02 15:14:52 by drezan           ###   ########.fr       */
+/*   Updated: 2026/10/03 17:23:24 by drezan           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "coder.h"
 #include "dongle.h"
 
-int	sim_stop(t_sim_param *sim_param)
-{
-	pthread_mutex_lock(&sim_param->stop_lock);
-	if (sim_param->sim_stop == 1)
-	{
-		pthread_mutex_unlock(&sim_param->stop_lock);
-		return (1);
-	}
-	pthread_mutex_unlock(&sim_param->stop_lock);
-	return (0);
-}
-
-static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
+static void	wait_for_cooldown(t_dongle *d, t_sim_param *param)
 {
 	long long		cooldown_over;
 	struct timeval	now;
 	struct timespec	ts;
 
-	pthread_mutex_lock(&d->dongle);
-	insert_heap(d->queue, c);
-	while ((d->queue->coders[0]->id != c->id || d->in_use) && !sim_stop(param))
-	{
-		pthread_cond_wait(&d->condition, &d->dongle);
-	}
-	if (sim_stop(param))
-	{
-		pthread_mutex_unlock(&d->dongle);
-		return ;
-	}
 	cooldown_over = d->last_compile.tv_sec * 1000 + d->last_compile.tv_usec
 		/ 1000 + param->dongle_cooldown;
 	ts.tv_sec = cooldown_over / 1000;
@@ -52,8 +29,22 @@ static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
 		pthread_cond_timedwait(&d->condition, &d->dongle, &ts);
 		gettimeofday(&now, NULL);
 	}
+}
+
+static void	acquire_single_dongle(t_dongle *d, t_sim_param *param, t_coder *c)
+{
+	pthread_mutex_lock(&d->dongle);
+	insert_heap(d->queue, c);
+	while ((d->queue->coders[0]->id != c->id || d->in_use) && !sim_stop(param))
+		pthread_cond_wait(&d->condition, &d->dongle);
+	if (sim_stop(param))
+	{
+		pthread_mutex_unlock(&d->dongle);
+		return ;
+	}
 	pop_min_from_heap(d->queue);
 	d->in_use = 1;
+	wait_for_cooldown(d, param);
 	pthread_mutex_unlock(&d->dongle);
 }
 
