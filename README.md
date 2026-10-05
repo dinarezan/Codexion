@@ -63,6 +63,75 @@ All arguments are mandatory and validated; invalid input (negative numbers,
 non-integers, wrong argument count, or an unrecognized scheduler) causes the
 program to reject the input and exit cleanly without starting the simulation.
 
+### Testing with sanitizers
+
+The Makefile provides two debug targets that rebuild the project with
+sanitizer instrumentation enabled. Neither is used for the submitted binary;
+switch back with `make re` afterward.
+
+**AddressSanitizer** (memory errors, leaks):
+
+```
+make debug-asan
+./codexion 5 3000 150 100 100 6 150 edf
+```
+
+ASan reports directly to stderr on exit (for leaks) or immediately (for
+errors such as use-after-free), with no extra flags needed. Its overhead is
+roughly 2x, so no special timing adjustments are usually needed.
+
+**ThreadSanitizer** (data races):
+
+```
+make debug-tsan
+```
+
+On some systems, TSan fails immediately with `FATAL: ThreadSanitizer:
+unexpected memory mapping`, caused by ASLR placing memory outside the fixed
+region TSan expects. If this happens, disable ASLR for the run:
+
+```
+setarch $(uname -m) -R ./codexion 5 3000 150 100 100 6 150 edf
+```
+
+Run it several times in a row, since races are timing-dependent and a single
+clean run doesn't prove one is absent:
+
+```
+for i in $(seq 1 20); do
+  setarch $(uname -m) -R ./codexion 5 3000 150 100 100 6 150 edf
+done
+```
+
+Vary `number_of_coders` (including `1`, to confirm a lone coder correctly
+burns out rather than looping) and test both schedulers, since `fifo`'s heap
+is a no-op while `edf` actively reorders on every insert, which exercises
+different code paths.
+
+### Testing with Valgrind
+
+Valgrind's instrumentation overhead (commonly 10-50x, and higher still for
+lock/condvar-heavy code) can make a coder burn out purely from the slowdown
+rather than from an actual bug. Use loosened timing parameters so the
+simulation can reach a natural end, and `--fair-sched=yes`, which schedules
+threads more evenly and avoids apparent starvation that is a Valgrind
+artifact rather than a real issue:
+
+```
+make re
+valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes \
+  --fair-sched=yes ./codexion 2 600000 500 200 200 2 50 fifo
+```
+
+A clean result ends with:
+
+```
+All heap blocks were freed -- no leaks are possible
+```
+
+Repeat for `edf`, for a single coder, and for the natural-completion and
+burnout termination paths, since Valgrind only reports on the exact run it
+observes.
 ## Resources
 
 - *Understanding CPU, Threads and Thread Scheduling for Multithreading Programming* — Medium: https://towardsdev.com/understanding-cpu-threads-and-thread-scheduling-for-multithreading-programming-bb6647584357
@@ -117,13 +186,12 @@ before being accepted.
   burnout deadline, with coder id as a tie-break. A coder only proceeds once
   it is at the head of the queue, which guarantees that no waiting coder is
   passed over indefinitely by later arrivals.
-- **Atomic grant under EDF reordering**: a coder is removed from the heap and
-  the dongle is marked in-use in the same critical section as the "am I at
-  the head and free?" check that lets it proceed — before any cooldown wait
-  begins. This prevents a race where a second coder's entry could reorder the
-  heap (because EDF reorders on insert) while the first coder's cooldown wait
-  was in progress, which previously allowed both coders to believe they had
-  won the same dongle.
+- **Atomic grant under EDF reordering**: No coder is allowed to touch the dongle
+  as long as the cooldown hasn't elapsed. During cooldown a coder can only
+  insert himself in a queue which will automatically reorder based on the soonest
+  deadine. In the moment when cooldown finishes, a coder is poped from the top of
+  the queue and granted a dongle. If the queue is empty and cooldown is over,
+  first coder that requests a dongle will be granted, just as in `fifo` order.
 - **Cooldown handling**: after releasing a dongle, a coder cannot reacquire it
   until `dongle_cooldown` milliseconds have passed. This is enforced with
   `pthread_cond_timedwait` against an absolute deadline, re-checked in a loop
@@ -180,10 +248,6 @@ before being accepted.
   heap is otherwise identical for both.
 - **Race conditions avoided by example**: the dongle's wait queue is only
   ever mutated while holding that dongle's mutex (insertion on request,
-  removal on grant) — an earlier version called the insertion function before
-  locking, which allowed two coders requesting the same dongle to corrupt the
-  heap concurrently. Similarly, a coder's grant (removing it from the queue
+  removal on grant). Similarly, a coder's grant (removing it from the queue
   and marking the dongle in-use) happens in the same locked section as the
-  check that authorized it, rather than after a cooldown wait that releases
-  the lock, which is what previously allowed a dongle to be granted twice
-  under `edf`.
+  check that authorized it.
